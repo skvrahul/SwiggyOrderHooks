@@ -50,6 +50,14 @@ listener.add_hook(MyPrintingOrderProcessor())
 l.poll() # poll swiggy with default wait time=30_000 (30s)
 
 ```
+## Example OrderProcessors
+
+You can leverage existing OrderProcessors under [`swiggy_order_hooks.example`](./swiggy_order_hooks/example)
+
+1. **Email Order Processor**: Send an email whenever an order is received
+
+2. **Rest DB Order Processor**: Add order to a simple REST based NoSQL Store [restdb.io](www.restdb.io) whenever order is received 
+
 
 ## Background
 
