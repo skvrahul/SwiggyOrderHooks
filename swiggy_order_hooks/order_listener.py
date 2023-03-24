@@ -50,7 +50,8 @@ class SwiggyOrderListener:
         if response.ok:
             self.logger.info(f"RESPONSE OK")
             response_json = response.json()
-            self.logger.debug("JSON Response: ", response_json)
+            self.logger.debug(f"JSON Response: {response_json}")
+            return response_json
         else:
             self.logger.error(f"RESPONSE NOT OK: STATUS {response.status_code} {response.reason}")
             response.reason
@@ -125,7 +126,7 @@ class SwiggyOrderListener:
 
             # nap for a bit...
             polltime = polltime_ms // 1000
-            self.logger.info('Sleeping for ', polltime, 'S')
+            self.logger.info(f"Sleeping for {polltime} S")
             sleep(polltime)
 
     def add_hook(self, order_processor: AbstractOrderProcessor):

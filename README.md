@@ -17,6 +17,7 @@ SwiggyOrderHooks allows anyone who manages a restaurant on Swiggy (the food aggr
 
 ```python
 
+import logging
 from swiggy_order_hooks import SwiggyOrderListener
 
 
@@ -32,6 +33,9 @@ class MyPrintingOrderProcessor(AbstractOrderProcessor):
             Total Bill: Rs.{order.bill}
         """
 
+
+# Configure logging (optional)
+logging.basicConfig(level = logging.DEBUG, filename='swiggy_listener.log')
 
 rid = 12345 # replace with your RID
 listener = SwiggyOrderListener(restaurant_id=rid)
