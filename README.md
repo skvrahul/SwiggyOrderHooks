@@ -47,7 +47,7 @@ listener.login('<MOBILE_NO/USERNAME>', '<PASSWORD>')
 listener.add_hook(MyPrintingOrderProcessor())
 
 # Start Listening to orders!
-l.poll() # poll's swiggy orders with default wait time=30_000 (30s)
+l.poll() # poll swiggy with default wait time=30_000 (30s)
 
 ```
 
