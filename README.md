@@ -62,7 +62,7 @@ You can leverage existing OrderProcessors under [`swiggy_order_hooks.example`](.
 ## Background
 
 I own and manage a Beverage brand that is partnered with Swiggy for delivery.   
-Subtle plug for [**Hydra**](www.hydrakombucha.com) if you wish to find out more!.   
+Subtle plug for [**Hydra**](https://www.hydrakombucha.com) if you wish to find out more!.   
 
 As any owner would, I was interested in diving into data about orders to gather some insights and maybe answer some questions you have about customer's ordering patterns.    
 
