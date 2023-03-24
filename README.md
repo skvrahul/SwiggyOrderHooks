@@ -73,7 +73,7 @@ Gathering this data will hopefully allow me to answer questions like:
  ... and so many more!
  
 
-## Datapoints available:
+## Datapoints available
 You have realtime access to order state and datapoints (previously unvailable via CSV Export) such as:
  - `Customer ID`
  - `Customer Lat/Long`
@@ -85,7 +85,7 @@ You have realtime access to order state and datapoints (previously unvailable vi
     
 
 
-## Gotchas and Notes of Caution:
+## :warning: Gotchas and Notes of Caution :warning: 
  - This is not an official API or client for Swiggy Restaurant Partner. Their API Contract and Data model may change anytime causing this to break. Since, I will be using this library myself too, I will try my best to keep it updated to minor API Changes.
 
  - This *might* be breaking their TOS.
