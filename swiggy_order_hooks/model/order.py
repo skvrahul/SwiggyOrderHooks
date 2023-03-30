@@ -1,5 +1,5 @@
 from typing import List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
 from .order_status import OrderStatus
@@ -25,8 +25,8 @@ class Order:
     restaurant_details: Optional[RestaurantDetails] = None
     cart: Optional[Cart] = None
     restaurant_taxation_type: Optional[str] = None
-    GST_details: Optional[dict] = dict
-    vendorData: Optional[dict] = dict
+    GST_details: Optional[dict] = field(default_factory=dict)
+    vendorData: Optional[dict] = field(default_factory=dict)
     gst: Optional[float] = None
     serviceCharge: Optional[float] = None
     spending: Optional[float] = None
@@ -36,9 +36,9 @@ class Order:
     restaurant_trade_discount: Optional[float] = 0.0
     total_restaurant_discount: Optional[float] = None
     type: Optional[str] = None
-    cafe_data: Optional[dict] = dict
+    cafe_data: Optional[dict] = field(default_factory=dict)
     is_assured: Optional[bool] = False
-    discount_descriptions: Optional[list] = list
+    discount_descriptions: Optional[list] = field(default_factory=list)
     order_expiry_time: Optional[str] = None
     final_gp_price: Optional[float] = None
     customer: Optional[Customer] = None

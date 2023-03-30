@@ -1,16 +1,9 @@
 from typing import List, Optional
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
-
-@dataclass
-@dataclass_json
-class Addon:
-    choice_id: Optional[str] = None
-    group_id: Optional[str] = None
-    name: Optional[str] = None
-    price: Optional[float] = 0
+from .addon import Addon
 
 @dataclass_json
 @dataclass
@@ -24,11 +17,11 @@ class Item:
     total: Optional[float] = 0
     category: Optional[str] = None
     sub_category: Optional[str] = None
-    charges: Optional[dict] = dict
-    addons: Optional[List[Addon]] = list
+    charges: Optional[dict] = field(default_factory=dict)
+    addons: Optional[List[Addon]] = field(default_factory=list)
     variants: Optional[str] = None
-    newAddons: Optional[List[Addon]] = list
-    newVariants: Optional[List] = list
+    newAddons: Optional[List[Addon]] = field(default_factory=list)
+    newVariants: Optional[List] = field(default_factory=list)
     is_oos: Optional[bool] = None 
     is_veg: Optional[str] = None
     reward_type: Optional[str] = None

@@ -93,7 +93,7 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
             item_obj = {
                 'item_name': i.name,
                 'item_id': i.item_id,
-                'item_addons': i.addons,
+                'item_addons': [asdict(adn) for adn in i.addons],
                 'item_price': i.total,
                 'item_quantity': i.quantity
             }

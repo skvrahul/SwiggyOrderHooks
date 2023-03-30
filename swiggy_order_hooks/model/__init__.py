@@ -1,4 +1,5 @@
-from .item import Item, Addon
+from .addon import Addon
+from .item import Item
 from .cart import Cart
 from .customer import Customer
 from .delivery_executive import DeliveryExecutive

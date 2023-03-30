@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
 from .order import Order
@@ -15,8 +15,8 @@ class RestaurantData:
     isOpen: Optional[bool] = None
     lastCachePollTime: Optional[int] = None
     batches: Optional[Dict] = dict
-    lastOrderEventTimestamps: Optional[Dict] = dict 
+    lastOrderEventTimestamps: Optional[Dict] = field(default_factory=dict) 
     isServiceable: Optional[bool] = None
     stressInfo: Optional[dict] = None
-    updatedOrderIds: Optional[List[str]] = list
-    popOrders: Optional[List[str]] = list
+    updatedOrderIds: Optional[List[str]] = field(default_factory=list)
+    popOrders: Optional[List[str]] = field(default_factory=list)
