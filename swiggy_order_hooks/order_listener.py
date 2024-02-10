@@ -19,7 +19,7 @@ POLLING_TIME_MS = 30000
 
  
 class SwiggyOrderListener:
-    def get_orders(self, restaurant_id, lastUpdatedTime=None):
+    def get_orders(self, restaurant_ids: List[int], lastUpdatedTime=None):
         headers = {
             'authority': 'partner.swiggy.com',
             'method': 'POST',
@@ -36,13 +36,17 @@ class SwiggyOrderListener:
             'Content-Type': 'application/json;charset=UTF-8'
         }
         data = {
-            "restaurantTimeMap": [{
-                "rest_rid": restaurant_id ,
-            }],
             "sourceMessageIdMap": {
                 "source": "POLLING_SERVICE"
-            }
+            },
+            "restaurantTimeMap": []
         }
+        for rid in restaurant_ids:
+            data["restaurantTimeMap"].append(
+                {
+                    "rest_rid": rid
+                }
+            )
         if(lastUpdatedTime):
             data['restaurantTimeMap'][0]['lastUpdatedTime']=lastUpdatedTime
         self.logger.info(f"Hitting Order Endpoint: {ORDERS_URL}")
@@ -92,7 +96,7 @@ class SwiggyOrderListener:
 
         while True:
             self.logger.info("calling get_orders()")
-            resp = self.get_orders(self.restaurant_id, lastUpdatedTime=clientTime)
+            resp = self.get_orders(self.restaurant_ids, lastUpdatedTime=clientTime)
             if resp is None:
                 self.logger.info('Whoops! something must have gone wrong while fetching orders')
             else:
@@ -133,10 +137,14 @@ class SwiggyOrderListener:
         if(order_processor not in self.order_processor_hooks):
             self.order_processor_hooks.append(order_processor)
 
-    def __init__(self, restaurant_id: int):
-        self.restaurant_id = restaurant_id
+    def __init__(self, restaurant_ids: List[int] = []):
         self.order_processor_hooks: List[AbstractOrderProcessor] = []
         self.logger = logging.getLogger("OrderListener")
         self.session = None
         self.logged_in = False
         self._init_session()
+        if not restaurant_ids:
+            # Try to get all available rids for this login
+            pass
+        else:
+            self.restaurant_ids = restaurant_ids
