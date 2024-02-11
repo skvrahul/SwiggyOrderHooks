@@ -32,7 +32,7 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
         url = f"https://{self.db_name}.restdb.io/rest/{collection_id}"
         if fields:
             fields_str = ','.join(fields)
-            url += "?metafields=false&fields={fields_str}"
+            url += '?metafields=false&fields={fields_str}&h={"$orderby":{"order_time": -1}}'
 
         headers = {
             "Content-Type": "application/json",
