@@ -78,10 +78,10 @@ class SwiggyOrderListener:
         resp = self.session.post("https://partner.swiggy.com/authentication/v1/login", json=login_body)
         if resp.ok: 
             resp_json = resp.json()
+            self.logger.debug(f"Received resp when trying to login: {resp_json}")
             if 'statusMessage' in resp_json and 'Successful' in resp_json['statusMessage']:
                 self.logged_in = True
                 return True
-            self.logger.debug(f"Received resp when trying to login: {resp_json}")
         raise RuntimeError("Unable to login")
 
     def poll(self,  polltime_ms=None):
@@ -124,6 +124,7 @@ class SwiggyOrderListener:
                                     processor.process_order(restaurant_data.restaurantId, o)
                                 except Exception as e:
                                     self.logger.error(f"{rid_prefix} Encountered exception: {e} while processing {processor}")
+                                self.logger.info(f"{rid_prefix} Done processing {processor}")
                     else:
                         self.logger.info("{rid_prefix} No orders yet!")
                     clientTime = restaurant_data.serverTime
