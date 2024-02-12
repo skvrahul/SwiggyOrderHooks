@@ -1,1 +1,2 @@
 from .restdb_processor import RestDBOrderProcessor
+from .telegram_processor import TelegramOrderProcessor

@@ -9,3 +9,10 @@ from .item import Item
 class Cart:
     charges: Optional[dict] = field(default_factory=dict)
     items: Optional[List[Item]] = field(default_factory=list)
+
+    def display_string(self):
+        ss = ''
+        if self.items:
+            for i in self.items:
+                ss += i.display_string() + "\n"
+        return ss

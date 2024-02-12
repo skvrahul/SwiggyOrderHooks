@@ -26,3 +26,9 @@ class Item:
     is_veg: Optional[str] = None
     reward_type: Optional[str] = None
     free_quantity: Optional[int] = 0
+
+    def display_string(self)->str:
+        ss = f"{self.quantity} x {self.name}"
+        if self.variants:
+            ss += f"[variants= {self.variants}]"
+        return ss
