@@ -32,7 +32,7 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
         url = f"https://{self.db_name}.restdb.io/rest/{collection_id}"
         if fields:
             fields_str = ','.join(fields)
-            url += "?metafields=false&fields={fields_str}"
+            url += '?metafields=false&fields={fields_str}&h={"$orderby":{"order_time": -1}}'
 
         headers = {
             "Content-Type": "application/json",
@@ -64,7 +64,7 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
         #     # update our cache table with this item
         #     self.item_cache[item.item_id] = item_obj
 
-    def _insert_order(self, order: Order):
+    def _insert_order(self, order: Order, restaurant_id):
         # Construct customer object
         customer_obj = {}
         if(order.customer):
@@ -78,6 +78,7 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
 
         # Construct Order Object
         order_obj = {
+            "restaurant_id": restaurant_id,
             "order_id": order.order_id,
             "customer": customer_obj,
             "items" : [],
@@ -128,4 +129,4 @@ class RestDBOrderProcessor(AbstractOrderProcessor):
         if order.order_id in self.orders_cache:
             print(f"Order #{order.order_id} has already been processed. Skipping...")
             return False
-        self._insert_order(order)
+        self._insert_order(order, restaurant_id=restaurant_id)

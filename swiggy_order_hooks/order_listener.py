@@ -19,7 +19,7 @@ POLLING_TIME_MS = 30000
 
  
 class SwiggyOrderListener:
-    def get_orders(self, restaurant_id, lastUpdatedTime=None):
+    def get_orders(self, restaurant_ids: List[int], lastUpdatedTime=None):
         headers = {
             'authority': 'partner.swiggy.com',
             'method': 'POST',
@@ -36,13 +36,17 @@ class SwiggyOrderListener:
             'Content-Type': 'application/json;charset=UTF-8'
         }
         data = {
-            "restaurantTimeMap": [{
-                "rest_rid": restaurant_id ,
-            }],
             "sourceMessageIdMap": {
                 "source": "POLLING_SERVICE"
-            }
+            },
+            "restaurantTimeMap": []
         }
+        for rid in restaurant_ids:
+            data["restaurantTimeMap"].append(
+                {
+                    "rest_rid": rid
+                }
+            )
         if(lastUpdatedTime):
             data['restaurantTimeMap'][0]['lastUpdatedTime']=lastUpdatedTime
         self.logger.info(f"Hitting Order Endpoint: {ORDERS_URL}")
@@ -74,10 +78,10 @@ class SwiggyOrderListener:
         resp = self.session.post("https://partner.swiggy.com/authentication/v1/login", json=login_body)
         if resp.ok: 
             resp_json = resp.json()
+            self.logger.debug(f"Received resp when trying to login: {resp_json}")
             if 'statusMessage' in resp_json and 'Successful' in resp_json['statusMessage']:
                 self.logged_in = True
                 return True
-            self.logger.debug(f"Received resp when trying to login: {resp_json}")
         raise RuntimeError("Unable to login")
 
     def poll(self,  polltime_ms=None):
@@ -92,7 +96,7 @@ class SwiggyOrderListener:
 
         while True:
             self.logger.info("calling get_orders()")
-            resp = self.get_orders(self.restaurant_id, lastUpdatedTime=clientTime)
+            resp = self.get_orders(self.restaurant_ids, lastUpdatedTime=clientTime)
             if resp is None:
                 self.logger.info('Whoops! something must have gone wrong while fetching orders')
             else:
@@ -120,6 +124,7 @@ class SwiggyOrderListener:
                                     processor.process_order(restaurant_data.restaurantId, o)
                                 except Exception as e:
                                     self.logger.error(f"{rid_prefix} Encountered exception: {e} while processing {processor}")
+                                self.logger.info(f"{rid_prefix} Done processing {processor}")
                     else:
                         self.logger.info("{rid_prefix} No orders yet!")
                     clientTime = restaurant_data.serverTime
@@ -133,10 +138,14 @@ class SwiggyOrderListener:
         if(order_processor not in self.order_processor_hooks):
             self.order_processor_hooks.append(order_processor)
 
-    def __init__(self, restaurant_id: int):
-        self.restaurant_id = restaurant_id
+    def __init__(self, restaurant_ids: List[int] = []):
         self.order_processor_hooks: List[AbstractOrderProcessor] = []
         self.logger = logging.getLogger("OrderListener")
         self.session = None
         self.logged_in = False
         self._init_session()
+        if not restaurant_ids:
+            # Try to get all available rids for this login
+            pass
+        else:
+            self.restaurant_ids = restaurant_ids
