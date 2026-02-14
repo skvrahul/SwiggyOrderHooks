@@ -1,88 +1,105 @@
+import json
 import logging
-import requests
+import uuid
 
-from typing import List
-from time import sleep
-from datetime import datetime
+import requests
 import dacite
 from dacite import DaciteError
+from typing import List
+from time import sleep
 
 from .model.restaurant_data import RestaurantData
-
 from .abstract_processor import AbstractOrderProcessor
 
-SWIGGY_BASE_URL = 'https://partner.swiggy.com'
-LOGIN_URL = f"{SWIGGY_BASE_URL}/login" 
-ORDERS_URL = f"{SWIGGY_BASE_URL}/orders/v1/fetch" 
+PARTNER_ORIGIN = "https://partner.swiggy.com"
+# New auth: GraphQL login (vhc-composer) and orders (rms) — see RCA in repo.
+VHC_LOGIN_URL = "https://vhc-composer.swiggy.com/query?mutation=loginMutation"
+ORDERS_URL = "https://rms.swiggy.com/orders/v1/fetchOrders"
 POLLING_TIME_MS = 30000
+
+LOGIN_MUTATION_QUERY = """
+  mutation loginMutation($input: LoginRequest!) {
+    login(input: $input) {
+      ID mobile rid name city access_token change_password userType userRole
+      permissions restaurants { rest_id rest_name city_name enabled }
+      user_restaurant_permissions
+    }
+  }
+"""
 
 
  
 class SwiggyOrderListener:
     def get_orders(self, restaurant_ids: List[int], lastUpdatedTime=None):
-        headers = {
-            'authority': 'partner.swiggy.com',
-            'method': 'POST',
-            'path': '/orders/v1/fetch',
-            'scheme': 'https',
-            'accept': 'application/json, text/plain, */*',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-US,en-IN;q=0.9,en;q=0.8',
-            'origin': 'https://partner.swiggy.com',
-            'referer': 'https://partner.swiggy.com/orders',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'Content-Type': 'application/json;charset=UTF-8'
-        }
         data = {
-            "sourceMessageIdMap": {
-                "source": "POLLING_SERVICE"
-            },
-            "restaurantTimeMap": []
+            "restaurantTimeMap": [
+                {"restaurantId": rid, "lastUpdatedTime": lastUpdatedTime}
+                for rid in restaurant_ids
+            ],
+            "sourceMessageIdMap": {"source": "POLLING_SERVICE"},
         }
-        for rid in restaurant_ids:
-            data["restaurantTimeMap"].append(
-                {
-                    "rest_rid": rid
-                }
-            )
-        if(lastUpdatedTime):
-            data['restaurantTimeMap'][0]['lastUpdatedTime']=lastUpdatedTime
-        self.logger.info(f"Hitting Order Endpoint: {ORDERS_URL}")
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "accesstoken": self._access_token,
+            "content-type": "application/json",
+            "referer": f"{PARTNER_ORIGIN}/",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        }
+        self.logger.info("Hitting Order Endpoint: %s", ORDERS_URL)
         response = self.session.post(ORDERS_URL, headers=headers, json=data)
         if response.ok:
-            self.logger.info(f"RESPONSE OK")
-            response_json = response.json()
-            self.logger.debug(f"JSON Response: {response_json}")
-            return response_json
-        else:
-            self.logger.error(f"RESPONSE NOT OK: STATUS {response.status_code} {response.reason}")
-            response.reason
+            self.logger.info("RESPONSE OK")
+            return response.json()
+        self.logger.error("RESPONSE NOT OK: STATUS %s %s", response.status_code, response.reason)
+        return None
 
     def _init_session(self):
         self.logged_in = False
+        self._access_token = None
         self.session = requests.Session()
-        # TODO: Stuff session with cookies / user-agent here to be more robust
 
     def login(self, username, password):
-        login_body = {
-            "username": username,
-            "password": password,
-            "accept_tnc": True
-        }
         if self.session is None:
-            self.logger.error("requests.Session not initialized...")
             raise RuntimeError("requests.Session not initialized...")
-
-        resp = self.session.post("https://partner.swiggy.com/authentication/v1/login", json=login_body)
-        if resp.ok: 
-            resp_json = resp.json()
-            self.logger.debug(f"Received resp when trying to login: {resp_json}")
-            if 'statusMessage' in resp_json and 'Successful' in resp_json['statusMessage']:
-                self.logged_in = True
-                return True
-        raise RuntimeError("Unable to login")
+        graphql_body = {
+            "operationName": "loginMutation",
+            "query": LOGIN_MUTATION_QUERY,
+            "variables": {
+                "input": {
+                    "username": username,
+                    "password": password,
+                    "accept_tnc": True,
+                    "existing_user": True,
+                    "include_dineout": True,
+                    "is_otp_login": False,
+                    "source": "VMS",
+                }
+            },
+        }
+        headers = {
+            "Accept": "application/graphql-response+json, application/json",
+            "Content-Type": "application/json",
+            "access_token": str(uuid.uuid4()),
+            "Origin": PARTNER_ORIGIN,
+            "Referer": f"{PARTNER_ORIGIN}/",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        }
+        resp = self.session.post(VHC_LOGIN_URL, json=graphql_body, headers=headers)
+        if not resp.ok:
+            self.logger.error("Login failed: HTTP %s", resp.status_code)
+            raise RuntimeError("Unable to login")
+        try:
+            data = resp.json()
+        except json.JSONDecodeError:
+            self.logger.error("Login response is not JSON")
+            raise RuntimeError("Unable to login")
+        login_data = (data.get("data") or {}).get("login")
+        if not login_data or not login_data.get("access_token"):
+            self.logger.error("Login rejected or no access_token in response")
+            raise RuntimeError("Unable to login")
+        self._access_token = login_data["access_token"]
+        self.logged_in = True
+        return True
 
     def poll(self,  polltime_ms=None):
 
@@ -126,7 +143,7 @@ class SwiggyOrderListener:
                                     self.logger.error(f"{rid_prefix} Encountered exception: {e} while processing {processor}")
                                 self.logger.info(f"{rid_prefix} Done processing {processor}")
                     else:
-                        self.logger.info("{rid_prefix} No orders yet!")
+                        self.logger.info(f"{rid_prefix} No orders yet!")
                     clientTime = restaurant_data.serverTime
 
             # nap for a bit...
