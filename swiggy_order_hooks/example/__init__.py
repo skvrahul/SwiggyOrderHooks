@@ -1,2 +1,3 @@
 from .restdb_processor import RestDBOrderProcessor
+from .firestore_processor import FirestoreOrderProcessor
 from .telegram_processor import TelegramOrderProcessor
