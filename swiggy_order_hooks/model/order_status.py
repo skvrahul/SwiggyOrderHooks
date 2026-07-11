@@ -20,3 +20,6 @@ class OrderStatus:
     cancelled_time: Optional[str] = None
     order_handover_window: Optional[int] = None
     early_mfr_time: Optional[int] = None
+    arrived_time: Optional[str] = None
+    trueArrived: Optional[bool] = None
+    hand_over_delayed: Optional[bool] = None

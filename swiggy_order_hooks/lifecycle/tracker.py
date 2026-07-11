@@ -99,6 +99,18 @@ class OrderStateTracker:
         if not prev_mfr and curr_mfr:
             candidates.append(make(OrderEventType.FOOD_READY, _parse_dt(curr_mfr)))
 
+        # ── DE ARRIVED (arrived_time appears) ────────────────────────────────
+        prev_arrived = ps.arrived_time if ps else None
+        curr_arrived = s.arrived_time if s else None
+        if not prev_arrived and curr_arrived:
+            candidates.append(make(OrderEventType.DE_ARRIVED, _parse_dt(curr_arrived)))
+
+        # ── HANDOVER DELAYED (Swiggy's own penalty flag flips True) ──────────
+        prev_delayed = ps.hand_over_delayed if ps else None
+        curr_delayed = s.hand_over_delayed if s else None
+        if not prev_delayed and curr_delayed:
+            candidates.append(make(OrderEventType.HANDOVER_DELAYED))
+
         # ── DELIVERY STATUS transitions ───────────────────────────────────────
         prev_ds = ps.delivery_status if ps else None
         curr_ds = s.delivery_status if s else None

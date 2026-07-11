@@ -24,6 +24,8 @@ class AbstractOrderProcessor(ABC):
     def handle_order_accepted(self, event: OrderLifecycleEvent): pass
     def handle_food_ready(self, event: OrderLifecycleEvent): pass
     def handle_de_assigned(self, event: OrderLifecycleEvent): pass
+    def handle_de_arrived(self, event: OrderLifecycleEvent): pass
+    def handle_handover_delayed(self, event: OrderLifecycleEvent): pass
     def handle_picked_up(self, event: OrderLifecycleEvent): pass
     def handle_delivered(self, event: OrderLifecycleEvent): pass
     def handle_cancelled(self, event: OrderLifecycleEvent): pass

@@ -7,13 +7,15 @@ from ..model import Order
 
 
 class OrderEventType(Enum):
-    NEW_ORDER      = "new_order"
-    ORDER_ACCEPTED = "order_accepted"   # restaurant accepted (placed_status -> placed)
-    FOOD_READY     = "food_ready"       # vendorData.foodPreparedTime appeared (MFR)
-    DE_ASSIGNED    = "de_assigned"      # delivery_status -> assigned
-    PICKED_UP      = "picked_up"        # delivery_status -> pickedup
-    DELIVERED      = "delivered"        # order_status -> delivered
-    CANCELLED      = "cancelled"
+    NEW_ORDER        = "new_order"
+    ORDER_ACCEPTED   = "order_accepted"   # restaurant accepted (placed_status -> placed)
+    FOOD_READY       = "food_ready"       # vendorData.foodPreparedTime appeared (MFR)
+    DE_ASSIGNED      = "de_assigned"      # delivery_status -> assigned
+    DE_ARRIVED       = "de_arrived"       # arrived_time appeared (DE at restaurant)
+    HANDOVER_DELAYED = "handover_delayed" # hand_over_delayed flipped True (Swiggy penalty window breached)
+    PICKED_UP        = "picked_up"        # delivery_status -> pickedup
+    DELIVERED        = "delivered"        # order_status -> delivered
+    CANCELLED        = "cancelled"
 
 
 @dataclass
