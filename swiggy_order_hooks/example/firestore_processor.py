@@ -13,10 +13,15 @@ from swiggy_order_hooks import AbstractOrderProcessor
 logger = logging.getLogger(__name__)
 
 
-def _to_ts(dt: Optional[datetime]) -> Optional[datetime]:
-    """Convert naive datetimes to UTC-aware for Firestore."""
+def _to_ts(dt) -> Optional[datetime]:
+    """Parse a string or convert a naive datetime to UTC-aware for Firestore."""
     if dt is None:
         return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt)
+        except ValueError:
+            return None
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt
