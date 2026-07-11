@@ -2,4 +2,5 @@ from .restdb_processor import RestDBOrderProcessor
 from .firestore_processor import FirestoreOrderProcessor
 from .firestore_lifecycle_processor import FirestoreLifecycleProcessor
 from .telegram_processor import TelegramOrderProcessor
+from .telegram_card_processor import TelegramCardProcessor
 from .pickup_sla_alert_processor import PickupSlaAlertProcessor, SlaWatchProcessor

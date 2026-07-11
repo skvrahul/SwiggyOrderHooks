@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Flag Delay</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ff6b35;
+      letter-spacing: 0.5px;
+    }
+
+    #card {
+      background: #1c1c1e;
+      border: 1px solid #2c2c2e;
+      border-radius: 14px;
+      padding: 18px;
+      width: 100%;
+      max-width: 400px;
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.65;
+      color: #e0e0e0;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    #copy-btn {
+      width: 100%;
+      max-width: 400px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+
+    #copy-btn:active {
+      transform: scale(0.97);
+    }
+
+    #copy-btn.copied {
+      background: #30d158;
+    }
+
+    #hint {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚠️ Flag Delay</h1>
+  <div id="card"></div>
+  <button id="copy-btn">Copy to clipboard</button>
+  <p id="hint">Paste directly into your WhatsApp group</p>
+
+  <script>
+    const p = new URLSearchParams(location.search);
+
+    const oid   = p.get("oid")   || "?";
+    const name  = p.get("name")  || "?";
+    const items = p.get("items") || "?";
+    const stage = p.get("stage") || "?";
+    const de    = p.get("de")    || "—";
+    const dePh  = p.get("de_ph") || "—";
+
+    const now = new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Kolkata",
+      hour12: false,
+    });
+
+    const msg =
+      `🚨 Delay flagged — Order #${oid}\n` +
+      `👤 ${name}\n` +
+      `🛍 ${items}\n` +
+      `📍 Stage: ${stage}\n` +
+      `🚴 DE: ${de}  📞 ${dePh}\n` +
+      `🕐 Flagged at ${now} IST`;
+
+    document.getElementById("card").textContent = msg;
+
+    const btn = document.getElementById("copy-btn");
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(msg);
+        btn.textContent = "✅ Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = "Copy to clipboard";
+          btn.classList.remove("copied");
+        }, 2500);
+      } catch {
+        // Fallback for browsers that block clipboard without HTTPS
+        const ta = document.createElement("textarea");
+        ta.value = msg;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        btn.textContent = "✅ Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = "Copy to clipboard";
+          btn.classList.remove("copied");
+        }, 2500);
+      }
+    });
+  </script>
+</body>
+</html>

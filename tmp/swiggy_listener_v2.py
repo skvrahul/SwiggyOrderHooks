@@ -13,6 +13,7 @@ from swiggy_order_hooks import SwiggyOrderListener
 from swiggy_order_hooks.lifecycle import parse_swiggy_dt
 from swiggy_order_hooks.example import (
     TelegramOrderProcessor,
+    TelegramCardProcessor,
     FirestoreOrderProcessor,
     FirestoreLifecycleProcessor,
     PickupSlaAlertProcessor,
@@ -88,6 +89,11 @@ def run_listener():
 
     # ----
     l.add_hook(TelegramOrderProcessor(TOKEN, SWIGGY_UPDATES_GRP_ID))
+    l.add_hook(TelegramCardProcessor(
+        token=TOKEN,
+        chat_id=SWIGGY_UPDATES_GRP_ID,
+        mini_app_base_url="https://YOUR_HOST/flag.html",  # set after hosting mini_app/flag.html
+    ))
     l.add_hook(FirestoreOrderProcessor('orderflow-lp3bq', creds))
     l.add_hook(FirestoreLifecycleProcessor('orderflow-lp3bq', creds))
     l.add_hook(PickupSlaAlertProcessor(TOKEN, SWIGGY_UPDATES_GRP_ID, threshold_minutes=4))
