@@ -8,6 +8,11 @@ from .event import OrderEventType, OrderLifecycleEvent
 logger = logging.getLogger(__name__)
 
 
+def parse_swiggy_dt(s: Optional[str]) -> Optional[datetime]:
+    """Parse an ISO8601 string from the Swiggy API into a tz-aware datetime (IST if naive)."""
+    return _parse_dt(s)
+
+
 def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     if not s:
         return None
