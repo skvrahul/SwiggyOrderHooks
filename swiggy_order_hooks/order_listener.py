@@ -10,6 +10,7 @@ from time import sleep
 
 from .model.restaurant_data import RestaurantData
 from .abstract_processor import AbstractOrderProcessor
+from .lifecycle import OrderStateTracker
 
 PARTNER_ORIGIN = "https://partner.swiggy.com"
 # New auth: GraphQL login (vhc-composer) and orders (rms) — see RCA in repo.
@@ -29,6 +30,34 @@ LOGIN_MUTATION_QUERY = """
 
 
  
+def _fmt_order(order) -> str:
+    """One-line summary of an order for log readability."""
+    s = order.status
+    order_id_short = str(order.order_id)[-6:] if order.order_id else "?"
+    parts = [
+        f"#{order_id_short}",
+        f"status={s.order_status or '?'}",
+        f"delivery={s.delivery_status or '?'}",
+    ]
+    if s.ordered_time:
+        parts.append(f"ordered={s.ordered_time[11:16]}")
+    if s.placed_time:
+        parts.append(f"placed={s.placed_time[11:16]}")
+    if hasattr(s, 'assigned_time') and s.assigned_time:
+        parts.append(f"assigned={s.assigned_time[11:16]}")
+    if hasattr(s, 'pickedup_time') and s.pickedup_time:
+        parts.append(f"pickedup={s.pickedup_time[11:16]}")
+    if s.cancelled_time:
+        parts.append(f"cancelled={s.cancelled_time[11:16]}")
+    items_str = ", ".join(
+        f"{i.quantity}x {i.name}" for i in (order.cart.items or [])
+    ) if order.cart else "?"
+    parts.append(f"items=[{items_str}]")
+    if order.customer and order.customer.customer_name:
+        parts.append(f"customer={order.customer.customer_name}")
+    return " | ".join(parts)
+
+
 class SwiggyOrderListener:
     def get_orders(self, restaurant_ids: List[int], lastUpdatedTime=None):
         data = {
@@ -45,10 +74,10 @@ class SwiggyOrderListener:
             "referer": f"{PARTNER_ORIGIN}/",
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         }
-        self.logger.info("Hitting Order Endpoint: %s", ORDERS_URL)
+        self.logger.debug("Hitting Order Endpoint: %s", ORDERS_URL)
         response = self.session.post(ORDERS_URL, headers=headers, json=data)
         if response.ok:
-            self.logger.info("RESPONSE OK")
+            self.logger.debug("RESPONSE OK")
             return response.json()
         self.logger.error("RESPONSE NOT OK: STATUS %s %s", response.status_code, response.reason)
         return None
@@ -112,12 +141,12 @@ class SwiggyOrderListener:
             polltime_ms = POLLING_TIME_MS
 
         while True:
-            self.logger.info("calling get_orders()")
+            self.logger.debug("calling get_orders()")
             resp = self.get_orders(self.restaurant_ids, lastUpdatedTime=clientTime)
             if resp is None:
-                self.logger.info('Whoops! something must have gone wrong while fetching orders')
+                self.logger.error("get_orders() returned None — check network/auth")
             else:
-                self.logger.info("Received a non-null response")
+                self.logger.debug("Received a non-null response")
                 for rest_data_dict in resp['restaurantData']:
                     try:
                         restaurant_data = dacite.from_dict(data_class=RestaurantData, data=rest_data_dict)
@@ -126,24 +155,42 @@ class SwiggyOrderListener:
                         continue
 
                     rid_prefix = f"RID {restaurant_data.restaurantId}:"
-                    self.logger.debug(f"{rid_prefix} {restaurant_data}")
                     orders = restaurant_data.orders
                     if orders:
-                        self.logger.info(f"{rid_prefix} Received {len(orders)} order updates")
-                        self.logger.debug(f"{rid_prefix} Orders = {orders}")
-
-                        # Call each hook sequentially on the received orders.
-                        # TODO: Make this async? 
+                        self.logger.info(f"{rid_prefix} {len(orders)} order update(s)")
                         for o in orders:
+                            self.logger.info(f"{rid_prefix}   {_fmt_order(o)}")
+
+                        last_event_times = restaurant_data.lastOrderEventTimestamps or {}
+
+                        for o in orders:
+                            # Diff against last snapshot → emit lifecycle events
+                            last_event_time = last_event_times.get(str(o.order_id))
+                            lifecycle_events = self._state_tracker.update(
+                                restaurant_data.restaurantId, o, last_event_time
+                            )
+                            is_active = self._state_tracker.is_active(restaurant_data.restaurantId, o)
+
                             for processor in self.order_processor_hooks:
-                                self.logger.info(f"{rid_prefix} Processing {processor}")
+                                self.logger.debug(f"{rid_prefix} Processing {processor}")
                                 try:
+                                    # Legacy hook (every poll)
                                     processor.process_order(restaurant_data.restaurantId, o)
+                                    # Lifecycle hooks (transition-based, fire at most once each)
+                                    for event in lifecycle_events:
+                                        processor.handle_lifecycle_event(event)
+                                    # SLA check (every poll while order is active)
+                                    if is_active:
+                                        processor.check_order_sla(restaurant_data.restaurantId, o)
                                 except Exception as e:
-                                    self.logger.error(f"{rid_prefix} Encountered exception: {e} while processing {processor}")
-                                self.logger.info(f"{rid_prefix} Done processing {processor}")
+                                    self.logger.error(
+                                        f"{rid_prefix} Exception in {processor} for order {o.order_id}: {e}",
+                                        exc_info=True,
+                                    )
+                                    raise
+                                self.logger.debug(f"{rid_prefix} Done processing {processor}")
                     else:
-                        self.logger.info(f"{rid_prefix} No orders yet!")
+                        self.logger.debug(f"{rid_prefix} No active orders")
                     clientTime = restaurant_data.serverTime
 
             # nap for a bit...
@@ -160,6 +207,7 @@ class SwiggyOrderListener:
         self.logger = logging.getLogger("OrderListener")
         self.session = None
         self.logged_in = False
+        self._state_tracker = OrderStateTracker()
         self._init_session()
         if not restaurant_ids:
             # Try to get all available rids for this login
