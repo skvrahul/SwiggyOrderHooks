@@ -92,7 +92,7 @@ def run_listener():
     l.add_hook(TelegramCardProcessor(
         token=TOKEN,
         chat_id=SWIGGY_UPDATES_GRP_ID,
-        mini_app_base_url="https://YOUR_HOST/flag.html",  # set after hosting mini_app/flag.html
+        mini_app_base_url="http://64.227.182.157:8080/flag.html",
     ))
     l.add_hook(FirestoreOrderProcessor('orderflow-lp3bq', creds))
     l.add_hook(FirestoreLifecycleProcessor('orderflow-lp3bq', creds))
