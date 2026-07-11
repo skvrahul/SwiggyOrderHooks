@@ -39,49 +39,14 @@ class FirestoreOrderProcessor(AbstractOrderProcessor):
       - Pass credentials_path, or set GOOGLE_APPLICATION_CREDENTIALS to a service account JSON path.
     """
 
-    def __init__(self, project_id: str, credentials_path: Optional[str] = None):
-        explicit_credentials_path = credentials_path
-        env_credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        credentials_path = explicit_credentials_path or env_credentials_path
-
-        if explicit_credentials_path:
-            credentials_source = "constructor argument"
-        elif env_credentials_path:
-            credentials_source = "GOOGLE_APPLICATION_CREDENTIALS"
-        else:
-            credentials_source = "none (application default credentials)"
-
+    def __init__(self, project_id: str, creds=None):
+        assert creds is not None, "creds must be a google.oauth2 credentials object"
         logger.info(
-            "Initializing FirestoreOrderProcessor: project_id=%s credentials_source=%s",
-            project_id,
-            credentials_source,
+            "Loaded service account credentials: client_email=%s project_id=%s",
+            creds.service_account_email,
+            creds.project_id,
         )
-
-        if credentials_path:
-            credentials_exists = os.path.isfile(credentials_path)
-            logger.info(
-                "Using service account credentials file: path=%s exists=%s",
-                credentials_path,
-                credentials_exists,
-            )
-            if not credentials_exists:
-                logger.warning(
-                    "Credentials file not found at %s; Firestore client init may fail",
-                    credentials_path,
-                )
-            creds = service_account.Credentials.from_service_account_file(credentials_path)
-            logger.info(
-                "Loaded service account credentials: client_email=%s project_id=%s",
-                creds.service_account_email,
-                creds.project_id,
-            )
-            self.db = firestore.Client(project=project_id, credentials=creds)
-        else:
-            logger.info(
-                "No credentials path provided; using application default credentials for project_id=%s",
-                project_id,
-            )
-            self.db = firestore.Client(project=project_id)
+        self.db = firestore.Client(project=project_id, credentials=creds)
 
         self.item_cache: Dict[str, Dict[str, Any]] = {}
         self.orders_cache: Dict[str, Dict[str, Any]] = {}
