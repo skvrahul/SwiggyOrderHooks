@@ -176,11 +176,12 @@ class TelegramCardProcessor(AbstractOrderProcessor):
             _row("✅", "MFR",         "food_ready",      "order_accepted",  "food_ready"),
         ]
 
-        # DE assigned row — include name
+        # DE assigned row — include name and phone (phone auto-linkifies in Telegram)
         de_at = t.get("de_assigned")
         if de_at:
             de_label = f"DE: {state.de_name}" if state.de_name else "DE Assigned"
-            rows.append(f"🚴 {_esc(de_label):<16} `{_esc(_fmt_time(de_at))}`")
+            de_phone_part = f"  📞 {_esc(state.de_phone)}" if state.de_phone else ""
+            rows.append(f"🚴 {_esc(de_label):<16} `{_esc(_fmt_time(de_at))}`{de_phone_part}")
 
         rows += [
             _row("📍", "Arrived",     "de_arrived"),
@@ -209,9 +210,7 @@ class TelegramCardProcessor(AbstractOrderProcessor):
     def _build_keyboard(self, order_id: str, order: Order, state: _CardState):
         buttons = []
 
-        if state.de_phone:
-            buttons.append(InlineKeyboardButton("📞 Call DE", url=f"tel:{state.de_phone}"))
-
+        # tel: URLs are rejected by Telegram — phone shown in card text instead
         if self._mini_app_base_url:
             buttons.append(InlineKeyboardButton(
                 "⚠️ Flag delay",
